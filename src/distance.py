@@ -9,7 +9,8 @@ from typing import Any
 
 import numpy as np
 import torch
-from faiss import StandardGpuResources, knn, knn_gpu, pairwise_distance_gpu, pairwise_distances
+#from faiss import StandardGpuResources, knn, knn_gpu, pairwise_distance_gpu, pairwise_distances
+from faiss import knn, pairwise_distances
 from faiss.contrib.torch_utils import torch_replacement_knn_gpu as knn_gpu_torch
 from faiss.contrib.torch_utils import (
     torch_replacement_pairwise_distance_gpu as pairwise_distance_gpu_torch,

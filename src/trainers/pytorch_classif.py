@@ -7,7 +7,11 @@ N = number of examples
 from typing import Sequence, Tuple
 
 import torch
-from laplace import ParametricLaplace
+#from laplace import ParametricLaplace
+try:
+    from laplace import ParametricLaplace
+except ImportError:
+    ParametricLaplace = None
 from torch import Tensor
 from torch.func import grad, vmap
 from torch.utils.data import DataLoader

@@ -60,7 +60,7 @@ from src.trainers.pytorch import PyTorchTrainer
 
 config_dir = Path(__file__).parent / "config"
 
-
+'''
 def get_gpytorch_trainer(
     data: ActiveLearningData, cfg: DictConfig, rng: Generator, device: str
 ) -> GPyTorchTrainer:
@@ -91,8 +91,9 @@ def get_gpytorch_trainer(
     )
 
     return trainer
+'''
 
-
+'''
 def get_pytorch_trainer(
     data: ActiveLearningData, cfg: DictConfig, rng: Generator, device: str
 ) -> PyTorchTrainer:
@@ -106,7 +107,7 @@ def get_pytorch_trainer(
     torch_rng = torch.Generator(device).manual_seed(seed)
 
     return instantiate(cfg.trainer, model=model, torch_rng=torch_rng)
-
+'''
 
 def get_sklearn_trainer(cfg: DictConfig) -> Trainer:
     model = instantiate(cfg.model)
@@ -120,6 +121,7 @@ def acquire_using_random(data: ActiveLearningData, cfg: DictConfig, rng: Generat
     return rng.choice(n_pool, size=cfg.acquisition.batch_size, replace=False).tolist()
 
 
+'''
 def acquire_using_balanced_random(
     data: ActiveLearningData, cfg: DictConfig, rng: Generator, trainer: Trainer
 ) -> List[int]:
@@ -162,8 +164,9 @@ def acquire_using_balanced_random(
         acquired_pool_inds += rng.choice(class_inds, size=n_sample, replace=False).tolist()
 
     return acquired_pool_inds
+'''
 
-
+'''
 def acquire_using_coreset_method(
     data: ActiveLearningData, cfg: DictConfig, rng: Generator, device: str
 ) -> List[int]:
@@ -205,8 +208,9 @@ def acquire_using_coreset_method(
     acquired_pool_inds = np.array(acquired_pool_inds) - data.n_train_labels
 
     return acquired_pool_inds.tolist()
+'''
 
-
+'''
 def acquire_using_badge_or_bait(
     data: ActiveLearningData, cfg: DictConfig, rng: Generator, device: str, trainer: Trainer
 ) -> List[int]:
@@ -300,7 +304,7 @@ def acquire_using_badge_or_bait(
         acquired_pool_inds = acquired_pool_inds.tolist()
 
     return acquired_pool_inds
-
+'''
 
 def acquire_using_uncertainty(
     data: ActiveLearningData, cfg: DictConfig, rng: Generator, device: str, trainer: Trainer
@@ -354,18 +358,18 @@ def acquire_using_uncertainty(
 @hydra.main(version_base=None, config_path=str(config_dir), config_name="main")
 def main(cfg: DictConfig) -> None:
     device = get_device(cfg.use_gpu)
-    slurm_job_id = os.environ.get("SLURM_JOB_ID", default=None)  # None if not running in Slurm
+    #slurm_job_id = os.environ.get("SLURM_JOB_ID", default=None)  # None if not running in Slurm
     rng = call(cfg.rng)
     formatters = get_formatters()
 
-    if cfg.use_gpu and (device not in {"cuda", "mps"}):
-        logging.warning(f"Device: {device}")
-    else:
-        logging.info(f"Device: {device}")
+    #if cfg.use_gpu and (device not in {"cuda", "mps"}):
+    #    logging.warning(f"Device: {device}")
+    #else:
+    #    logging.info(f"Device: {device}")
 
-    logging.info(f"Slurm job ID: {slurm_job_id}")
-    logging.info(f"Seed: {cfg.rng.seed}")
-    logging.info(f"Making results dirs at {cfg.directories.results_run}")
+    #logging.info(f"Slurm job ID: {slurm_job_id}")
+    #logging.info(f"Seed: {cfg.rng.seed}")
+    #logging.info(f"Making results dirs at {cfg.directories.results_run}")
 
     results_dir = Path(cfg.directories.results_run)
 
@@ -374,10 +378,11 @@ def main(cfg: DictConfig) -> None:
 
     save_repo_status(results_dir / "git")
 
-    if cfg.wandb.use:
-        set_up_wandb(cfg, slurm_job_id)
+    #if cfg.wandb.use:
+    #    set_up_wandb(cfg, slurm_job_id)
 
     # ----------------------------------------------------------------------------------------------
+    
     logging.info("Loading data")
 
     data = instantiate(cfg.data, rng=rng, device=device)
@@ -400,11 +405,11 @@ def main(cfg: DictConfig) -> None:
     while True:
         n_labels_str = f"{data.n_train_labels:04}_labels"
         is_last_al_step = data.n_train_labels >= cfg.acquisition.n_train_labels_end
-
+        trainer = get_sklearn_trainer(cfg)
         # ------------------------------------------------------------------------------------------
         logging.info(f"Number of labels: {data.n_train_labels}")
         logging.info("Setting up trainer")
-
+        '''
         if cfg.model_type == "gpytorch":
             trainer = get_gpytorch_trainer(data, cfg, rng, device)
 
@@ -412,11 +417,11 @@ def main(cfg: DictConfig) -> None:
             trainer = get_pytorch_trainer(data, cfg, rng, device)
 
         elif cfg.model_type == "sklearn":
-            trainer = get_sklearn_trainer(cfg)
+            
 
         else:
             raise ValueError(f"Unrecognized model type: {cfg.model_type}")
-
+        '''
         if data.n_train_labels > 0:
             # --------------------------------------------------------------------------------------
             logging.info("Training")
@@ -474,8 +479,8 @@ def main(cfg: DictConfig) -> None:
         test_log.append({"n_labels": data.n_train_labels, **prepend_to_keys(test_metrics, "test")})
         test_log.save_to_csv(results_dir / "testing.csv", formatters)
 
-        if cfg.wandb.use:
-            wandb.log({key: values[-1] for key, values in test_log.items()})
+        #if cfg.wandb.use:
+        #    wandb.log({key: values[-1] for key, values in test_log.items()})
 
         if is_last_al_step:
             logging.info("Stopping active learning")
@@ -521,9 +526,9 @@ def main(cfg: DictConfig) -> None:
     run_time = timedelta(seconds=(time() - start_time))
     np.savetxt(results_dir / "run_time.txt", [str(run_time)], fmt="%s")
 
-    if cfg.wandb.use:
-        save_run_to_wandb(results_dir, cfg.directories.results_subdirs[cfg.model_type])
-        wandb.finish()  # Ensure each run in a Hydra multirun is logged separately
+    #if cfg.wandb.use:
+    #    save_run_to_wandb(results_dir, cfg.directories.results_subdirs[cfg.model_type])
+    #    wandb.finish()  # Ensure each run in a Hydra multirun is logged separately
 
 
 if __name__ == "__main__":
